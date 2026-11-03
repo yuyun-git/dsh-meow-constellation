@@ -21,7 +21,7 @@
   @keyframes blink { 50% { opacity: .35; } }
 
   .left { position: absolute; left: 42px; top: 132px; width: 232px; z-index: 12; display: flex; flex-direction: column; gap: 14px; }
-  .card { padding: 18px 18px 16px; border-radius: 16px; background: rgba(16,22,48,.62); border: 1px solid rgba(150,175,255,.2); box-shadow: 0 16px 44px rgba(0,0,0,.42); backdrop-filter: blur(6px); }
+  .card { padding: 18px 18px 16px; border-radius: 16px; background: rgba(13,18,40,.92); border: 1px solid rgba(150,175,255,.2); box-shadow: 0 16px 44px rgba(0,0,0,.42); }
   .card-title { font-size: 12px; letter-spacing: 3px; color: #8b96c4; margin-bottom: 14px; display: flex; justify-content: space-between; }
   .card-title span { color: #cdd8ff; letter-spacing: 1px; }
   .legend-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 9px; cursor: pointer; font-size: 13px; transition: background .2s, opacity .2s; user-select: none; }
@@ -46,7 +46,7 @@
   .toast.show { opacity: 1; }
   .tip { position: absolute; z-index: 20; padding: 6px 12px; border-radius: 8px; background: rgba(12,17,40,.92); border: 1px solid rgba(150,175,255,.3); font-size: 12px; letter-spacing: 1px; color: #e8ecff; pointer-events: none; display: none; max-width: 260px; }
 
-  .detail { position: absolute; top: 50%; right: 42px; transform: translateY(-50%) translateX(18px); width: 372px; max-height: 76vh; overflow: auto; padding: 28px 28px 26px; border-radius: 20px; background: rgba(16,22,48,.78); border: 1px solid rgba(150,175,255,.26); box-shadow: 0 22px 66px rgba(0,0,0,.55); backdrop-filter: blur(9px); z-index: 15; opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s; }
+  .detail { position: absolute; top: 50%; right: 42px; transform: translateY(-50%) translateX(18px); width: 372px; max-height: 76vh; overflow: auto; padding: 28px 28px 26px; border-radius: 20px; background: rgba(13,18,40,.94); border: 1px solid rgba(150,175,255,.26); box-shadow: 0 22px 66px rgba(0,0,0,.55); z-index: 15; opacity: 0; pointer-events: none; transition: opacity .35s, transform .35s; }
   .detail.show { opacity: 1; transform: translateY(-50%) translateX(0); pointer-events: auto; }
   .detail::-webkit-scrollbar { width: 6px; }
   .detail::-webkit-scrollbar-thumb { background: rgba(150,175,255,.3); border-radius: 3px; }
@@ -510,8 +510,11 @@
     if (workspace === '__all__') q.set('scope', 'all');
     else if (workspace) q.set('dir', workspace);
     if (includeAll) q.set('all', '1');
+    // 静默轮询带上上次 mtime：库没变时服务端只回一个轻量标记，省掉整包传输
+    if (silent && DATA && DATA.mtime) q.set('since', String(DATA.mtime));
     return api('/meow-constellation/api/memories?' + q.toString()).then(function (d) {
       if (!d.ok) throw new Error(d.error || 'no data');
+      if (d.unchanged) return;
       applyData(d, silent);
     }).catch(function (e) {
       if (!DATA) applyDemo();
@@ -622,7 +625,10 @@
     get selected() { return selected; },
     select: function (n) { select(n); },
     hitTest: hitTest,
-    project: project
+    project: project,
+    draw: draw,
+    buildNodes: buildNodes,
+    buildLinks: buildLinks
   };
   window.__mcReady = true;
 })();
