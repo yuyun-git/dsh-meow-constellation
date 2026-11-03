@@ -171,19 +171,21 @@
       var arr = groups[level] || [], meta = LAYERS[level];
       if (!meta) return;
       arr.forEach(function (it, idx) {
-        var a = (idx / Math.max(1, arr.length)) * Math.PI * 2 + hash(it.id) * 0.5;
-        var rr = meta.ring * 78 + (hash(it.id + 'r') - 0.5) * 54;
-        var off = OFFSETS.get(it.id) || { x: 0, y: 0 };
+        var key = it.uid || it.id;
+        var a = (idx / Math.max(1, arr.length)) * Math.PI * 2 + hash(key) * 0.5;
+        var rr = meta.ring * 78 + (hash(key + 'r') - 0.5) * 54;
+        var off = OFFSETS.get(key) || { x: 0, y: 0 };
         var bx = Math.cos(a) * rr, by = Math.sin(a) * rr * 0.56;
         nodes.push({
-          id: it.id, level: level, content: it.content, title: it.title,
+          id: key, rawId: it.id, workspaceName: it.workspaceName,
+          level: level, content: it.content, title: it.title,
           importance: it.importance || 1, keywords: it.keywords || [], status: it.status || 'active',
           project: it.project, subcategory: it.subcategory, goal: it.goal,
           corrected: it.corrected, hitCount: it.hitCount, createdAt: it.createdAt,
           updatedAt: it.updatedAt, sourceSession: it.sourceSession,
           color: meta.color,
           x: bx + off.x, y: by + off.y, baseX: bx, baseY: by,
-          z: meta.z + (hash(it.id + 'z') - 0.5) * 80,
+          z: meta.z + (hash(key + 'z') - 0.5) * 80,
           radius: 4 + Math.min(6, it.importance || 1) * 2.0
         });
       });
@@ -366,6 +368,7 @@
       + '<div class="rule"></div>'
       + '<dl class="grid">'
       + '<dt>重要性</dt><dd class="stars">' + stars + '　' + n.importance + '</dd>'
+      + (n.workspaceName ? '<dt>工作区</dt><dd>' + esc(n.workspaceName) + '</dd>' : '')
       + '<dt>项目</dt><dd>' + esc(n.project || '—') + '</dd>'
       + '<dt>子类</dt><dd>' + esc(n.subcategory || '—') + '</dd>'
       + '<dt>命中</dt><dd>' + (n.hitCount || 0) + ' 次</dd>'
@@ -375,7 +378,7 @@
       + (kws ? '<div class="kw">' + kws + '</div>' : '<div class="rule"></div>')
       + '<div class="d-content">' + esc(n.content) + '</div>'
       + (rel ? '<div class="rel"><div class="t">关联记忆</div>' + rel + '</div>' : '')
-      + '<div class="d-foot">' + esc(n.id) + '<button id="copy-id">复制 ID</button></div>';
+      + '<div class="d-foot">' + esc(n.rawId || n.id) + '<button id="copy-id">复制 ID</button></div>';
     detailEl.innerHTML = html;
     detailEl.classList.add('show');
     detailEl.querySelectorAll('.rel a').forEach(function (a) {
@@ -386,7 +389,7 @@
     });
     var copy = $('copy-id');
     if (copy) copy.addEventListener('click', function () {
-      if (navigator.clipboard) navigator.clipboard.writeText(n.id).then(function () { toast('ID 已复制'); });
+      if (navigator.clipboard) navigator.clipboard.writeText(n.rawId || n.id).then(function () { toast('ID 已复制'); });
     });
   }
 
@@ -492,16 +495,20 @@
       if (!d.ok) throw new Error(d.error || 'no workspaces');
       workspaces = d.workspaces || [];
       var sel = $('workspace');
-      sel.innerHTML = workspaces.map(function (w) {
-        return '<option value="' + esc(w.path) + '">' + esc(w.name) + '</option>';
-      }).join('') || '<option value="">（无记忆库）</option>';
+      var allActive = workspaces.reduce(function (sum, w) { return sum + (w.activeTotal || 0); }, 0);
+      var opts = ['<option value="__all__">全部工作区 · ' + allActive + ' 条</option>'];
+      opts = opts.concat(workspaces.map(function (w) {
+        return '<option value="' + esc(w.path) + '">' + esc(w.name) + ' · ' + (w.activeTotal || 0) + ' 条</option>';
+      }));
+      sel.innerHTML = opts.join('');
       if (!workspace && d.current) { workspace = d.current; sel.value = workspace; }
     });
   }
 
   function loadMemories(silent) {
     var q = new URLSearchParams();
-    if (workspace) q.set('dir', workspace);
+    if (workspace === '__all__') q.set('scope', 'all');
+    else if (workspace) q.set('dir', workspace);
     if (includeAll) q.set('all', '1');
     return api('/meow-constellation/api/memories?' + q.toString()).then(function (d) {
       if (!d.ok) throw new Error(d.error || 'no data');
