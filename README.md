@@ -73,18 +73,19 @@ npm publish --access public
 
 ### GitHub
 
-本地仓库已初始化（`main` 分支，tag `v0.1.0`）。**创建远端仓库需要 GitHub 认证**，二选一：
+已发布到 [yuyun-git/dsh-meow-constellation](https://github.com/yuyun-git/dsh-meow-constellation)（`main` 分支 + `v0.1.0` tag）。
 
 ```bash
-# 方式一：GitHub CLI（一条龙：创建仓库 + push）
-gh auth login
-gh repo create <owner>/dsh-meow-constellation --public --source=. --remote=origin --push
+git clone https://github.com/yuyun-git/dsh-meow-constellation.git
+```
 
-# 方式二：网页先建好空仓库（不要勾 README/LICENSE），再推
-git remote add origin https://github.com/<owner>/dsh-meow-constellation.git
+本地开发推送：
+
+```bash
+git remote add origin git@github.com:yuyun-git/dsh-meow-constellation.git
 git push -u origin main --tags
 ```
 
-`package.json` 的 `repository` / `homepage` / `bugs` 目前指向 `zhushiyuan-code`；若你的 GitHub 用户名不同，推送前改这三处再 `git commit --amend`。
+`package.json` 的 `repository` / `homepage` / `bugs` 已指向 `yuyun-git`。
 
 MIT © 2026
